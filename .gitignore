@@ -1,8 +1,14 @@
 # Python
+__pycache__/
+*.pyc
+
+# Virtualenv (INSIDE link-service)
 link-service/venv/
-link-service/__pycache__/
-link-service/*.pyc
-link-service/.env
+link-service/bin/
+link-service/lib/
+link-service/lib64/
+link-service/include/
+link-service/pyvenv.cfg
 
 # Node.js
 analytics-service/node_modules/
