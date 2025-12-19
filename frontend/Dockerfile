@@ -1,7 +1,8 @@
 FROM node:18 AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --silent
+# Ensure devDependencies are installed (so react-scripts is available)
+RUN npm ci --silent --include=dev
 COPY . .
 ARG REACT_APP_LINK_SERVICE_URL
 ARG REACT_APP_ANALYTICS_SERVICE_URL
