@@ -1,13 +1,10 @@
 FROM node:18 AS build
 WORKDIR /app
-COPY package*.json ./
-# Ensure devDependencies are installed (so react-scripts is available)
-RUN npm ci --silent --include=dev
 COPY . .
-ARG REACT_APP_LINK_SERVICE_URL
-ARG REACT_APP_ANALYTICS_SERVICE_URL
-ENV REACT_APP_LINK_SERVICE_URL=$REACT_APP_LINK_SERVICE_URL
-ENV REACT_APP_ANALYTICS_SERVICE_URL=$REACT_APP_ANALYTICS_SERVICE_URL
+
+RUN npm install
+RUN echo "REACT_APP_LINK_SERVICE_URL=http://localhost:3000" > .env
+RUN echo "REACT_APP_ANALYTICS_SERVICE_URL=http://localhost:4000" >> .env
 RUN npm run build
 
 FROM nginx:alpine
