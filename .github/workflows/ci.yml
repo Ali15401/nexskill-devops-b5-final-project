@@ -25,7 +25,12 @@ jobs:
           echo "ls -la:"
           ls -la
           echo "Show top-level docker-compose.yml if present:"
-          if [ -f ./docker-compose.yml ]; then echo "FOUND docker-compose.yml"; head -n 40 ./docker-compose.yml; else echo "NO docker-compose.yml at repo root"; fi
+          if [ -f ./docker-compose.yml ]; then
+            echo "FOUND docker-compose.yml"
+            head -n 40 ./docker-compose.yml
+          else
+            echo "NO docker-compose.yml at repo root"
+          fi
 
       - name: Set up QEMU (optional)
         uses: docker/setup-qemu-action@v2
@@ -46,38 +51,55 @@ jobs:
       - name: Start stack
         run: docker compose -f ./docker-compose.yml up -d
 
-      - name: Make wait-for-it executable
+      - name: Make wait-for-it executable (if present)
         run: |
-          if [ -f ./scripts/wait-for-it.sh ]; then chmod +x ./scripts/wait-for-it.sh; else echo "scripts/wait-for-it.sh not found; continuing"; fi
+          if [ -f ./scripts/wait-for-it.sh ]; then
+            chmod +x ./scripts/wait-for-it.sh
+          else
+            echo "scripts/wait-for-it.sh not found; continuing"
+          fi
 
       - name: Wait for Postgres
-        run: ./scripts/wait-for-it.sh -t 60 localhost:5432
+        run: |
+          if [ -f ./scripts/wait-for-it.sh ]; then
+            ./scripts/wait-for-it.sh -t 60 localhost:5432
+          else
+            echo "No wait-for-it script; sleeping 10s"
+            sleep 10
+          fi
 
       - name: Wait a short moment for other services
         run: sleep 5
 
       - name: Run unit tests (link-service - Python)
         run: |
-          # Install requirements in the container and run pytest if tests exist
-          docker compose -f ./docker-compose.yml run --rm link-service sh -c "\
-            echo 'Inside link-service: installing requirements (if present)'; \
-            if [ -f requirements.txt ]; then python3 -m pip install --no-cache-dir -r requirements.txt || true; else echo 'no requirements.txt'; fi; \
-            # Run pytest if tests directory or pytest.ini exists
-            if [ -d tests ] || [ -f pytest.ini ] || python3 -c 'import pkgutil, sys; sys.exit(0)'; then \
-              if command -v pytest >/dev/null 2>&1; then pytest -q || exit 1; else echo 'pytest not installed; skipping tests'; fi; \
-            else \
-              echo 'no tests found for link-service; skipping'; \
-            fi"
+          docker compose -f ./docker-compose.yml run --rm link-service sh -lc '
+            echo "Inside link-service: installing requirements (if present)";
+            if [ -f requirements.txt ]; then
+              python3 -m pip install --no-cache-dir -r requirements.txt || true;
+            else
+              echo "no requirements.txt";
+            fi;
+            if [ -d tests ] || [ -f pytest.ini ]; then
+              if command -v pytest >/dev/null 2>&1; then
+                pytest -q || exit 1;
+              else
+                echo "pytest not installed; skipping tests";
+              fi;
+            else
+              echo "no tests found for link-service; skipping";
+            fi
+          '
 
       - name: Run unit tests (analytics-service - Node)
-        run: docker compose -f ./docker-compose.yml run --rm analytics-service sh -c "npm install --legacy-peer-deps && npm test -- --watchAll=false"
+        run: docker compose -f ./docker-compose.yml run --rm analytics-service sh -lc 'npm install --legacy-peer-deps && npm test -- --watchAll=false'
 
       - name: Run frontend tests (Node)
-        run: docker compose -f ./docker-compose.yml run --rm frontend sh -c "npm install --legacy-peer-deps && npm test -- --watchAll=false"
+        run: docker compose -f ./docker-compose.yml run --rm frontend sh -lc 'npm install --legacy-peer-deps && npm test -- --watchAll=false'
 
       - name: Run e2e tests
         run: docker compose -f ./docker-compose.yml run --rm e2e
 
       - name: Tear down docker-compose (always)
-        if: always()
+        if: ${{ always() }}
         run: docker compose -f ./docker-compose.yml down --volumes --remove-orphans
