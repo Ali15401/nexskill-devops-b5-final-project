@@ -9,56 +9,90 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d urlshortener"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
 
   analytics-service:
     build:
       context: ./analytics-service
       dockerfile: Dockerfile
     environment:
+      PORT: 4000
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: urlshortener
       DB_USER: postgres
       DB_PASSWORD: postgres
-      PORT: 4000
     ports:
       - "4000:4000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: on-failure
 
   link-service:
     build:
       context: ./link-service
       dockerfile: Dockerfile
     environment:
+      PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: urlshortener
       DB_USER: postgres
       DB_PASSWORD: postgres
       ANALYTICS_SERVICE_URL: http://analytics-service:4000
-      PORT: 3000
     ports:
       - "3000:3000"
     depends_on:
-      - postgres
-      - analytics-service
+      postgres:
+        condition: service_healthy
+      analytics-service:
+        condition: service_started
+    healthcheck:
+      # If your link-service exposes an HTTP health endpoint use that; otherwise keep a TCP check
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: on-failure
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        REACT_APP_LINK_SERVICE_URL: http://link-service:3000
-        REACT_APP_ANALYTICS_SERVICE_URL: http://analytics-service:4000
+        REACT_APP_LINK_SERVICE_URL: "http://link-service:3000"
+        REACT_APP_ANALYTICS_SERVICE_URL: "http://analytics-service:4000"
     environment:
-      REACT_APP_LINK_SERVICE_URL: http://link-service:3000
-      REACT_APP_ANALYTICS_SERVICE_URL: http://analytics-service:4000
+      # runtime env (not used by static build served by nginx, but included for clarity)
+      REACT_APP_LINK_SERVICE_URL: "http://link-service:3000"
+      REACT_APP_ANALYTICS_SERVICE_URL: "http://analytics-service:4000"
     ports:
       - "8080:80"
     depends_on:
-      - link-service
-      - analytics-service
+      link-service:
+        condition: service_started
+      analytics-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: on-failure
 
   e2e:
     image: node:18
@@ -73,6 +107,10 @@ services:
       - frontend
     entrypoint: ["sh", "-c"]
     command: "npm install --legacy-peer-deps && npm run test:e2e"
+    environment:
+      # If your e2e needs to refer to services by host
+      LINK_SERVICE_URL: "http://link-service:3000"
+      ANALYTICS_SERVICE_URL: "http://analytics-service:4000"
 
 volumes:
   pgdata:
