@@ -1,14 +1,18 @@
 {
   "name": "analytics-service",
   "version": "1.0.0",
-  "private": true,
-  "main": "index.js",
+  "description": "Analytics service for URL shortener",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "test": "echo \"No tests\" && exit 0"
   },
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {}
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "pg": "^8.11.3"
+  }
 }
