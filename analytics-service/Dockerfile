@@ -8,7 +8,7 @@ ENV PORT=4000
 COPY package*.json ./
 
 RUN apk add --no-cache --virtual .gyp python3 make g++ \
-    && (npm ci --only=production --silent || npm install --only=production --silent) \
+    && npm install --only=production --silent \
     && apk del .gyp
 
 COPY . .
@@ -16,3 +16,4 @@ COPY . .
 EXPOSE 4000
 
 CMD ["npm", "start"]
+
