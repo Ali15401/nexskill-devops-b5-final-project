@@ -3,9 +3,18 @@
   "version": "1.0.0",
   "description": "Analytics service for URL shortener",
   "main": "server.js",
+  "private": true,
   "scripts": {
+<<<<<<< HEAD
     "start": "node server.js"
     "test": "echo \"No tests\" && exit 0"
+=======
+    "start": "node server.js",
+    "test": "echo \"No tests\" && exit 0"
+  },
+  "engines": {
+    "node": ">=18"
+>>>>>>> 8138572 (create a new package.json file)
   },
   "dependencies": {
     "express": "^4.18.2",
