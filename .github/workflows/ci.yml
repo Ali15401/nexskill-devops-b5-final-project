@@ -92,7 +92,11 @@ jobs:
           '
 
       - name: Run unit tests (analytics-service - Node)
-        run: docker compose -f ./docker-compose.yml run --rm analytics-service sh -lc 'npm install --legacy-peer-deps && npm test -- --watchAll=false'
+        run: docker compose -f ./docker-compose.yml run --rm analytics-service sh -lc '
+          apt-get update && apt-get install -y curl && \
+          curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
+          apt-get install -y nodejs && \
+          npm install --legacy-peer-deps && npm test -- --watchAll=false'
 
       - name: Run frontend tests (Node)
         run: docker compose -f ./docker-compose.yml run --rm frontend sh -lc 'npm install --legacy-peer-deps && npm test -- --watchAll=false'
