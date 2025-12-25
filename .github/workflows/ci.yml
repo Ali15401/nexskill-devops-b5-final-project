@@ -30,7 +30,6 @@ jobs:
             head -n 40 ./docker-compose.yml
           else
             echo "NO docker-compose.yml at repo root"
-          fi
 
       - name: Set up QEMU (optional)
         uses: docker/setup-qemu-action@v2
