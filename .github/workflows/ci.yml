@@ -11,6 +11,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,14 +48,11 @@ jobs:
 
       - name: Run analytics-service unit tests (Node)
         run: |
-          docker-compose -f ./docker-compose.yml run --rm analytics-service sh -lc 'npm install --legacy-peer-deps --silent && npm run test --if-present -- --watchAll=false'
+          docker-compose -f ./docker-compose.yml run --rm analytics-service sh -lc "npm install --legacy-peer-deps --silent && npm run test --if-present -- --watchAll=false"
 
-       name: Run link-service unit tests (Python)
-         run: |
-           docker-compose -f ./docker-compose.yml run --rm link-service sh -lc '
-           pip install --no-cache-dir -r requirements.txt &&
-           pip install pytest &&
-           python -m pytest --maxfail=1 -q'
+      - name: Run link-service unit tests (Python)
+        run: |
+          docker-compose -f ./docker-compose.yml run --rm link-service sh -lc "pip install --no-cache-dir -r requirements.txt && pip install pytest && python -m pytest --maxfail=1 -q"
 
       - name: Bring down docker-compose (always)
         if: always()
