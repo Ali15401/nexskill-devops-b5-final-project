@@ -1,108 +1,47 @@
-# CI: build images, start stack, run unit tests and e2e
+name: Docker CI
+
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch: {}
+    branches:
+      - main
 
 jobs:
-  ci:
+  build:
     runs-on: ubuntu-latest
-    env:
-      COMPOSE_DOCKER_CLI_BUILD: 1
-      DOCKER_BUILDKIT: 1
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Debug
-        run: |
-          echo "pwd: $(pwd)"
-          echo "ls -la:"
-          ls -la
-          echo "Show top-level docker-compose.yml if present:"
-          if [ -f ./docker-compose.yml ]; then
-            echo "FOUND docker-compose.yml"
-            head -n 40 ./docker-compose.yml
-          else
-            echo "NO docker-compose.yml at repo root"
-
-      - name: Set up QEMU (optional)
-        uses: docker/setup-qemu-action@v2
-
+      # Set up Docker Buildx
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2
 
-      - name: Login to Docker registry (optional)
-        if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
+      # Log in to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build docker-compose images
-        run: docker compose -f ./docker-compose.yml build --parallel
-
-      - name: Start stack
-        run: docker compose -f ./docker-compose.yml up -d
-
-      - name: Make wait-for-it executable (if present)
+      # Build and push containers
+      - name: Build & Push Docker images
         run: |
-          if [ -f ./scripts/wait-for-it.sh ]; then
-            chmod +x ./scripts/wait-for-it.sh
-          else
-            echo "scripts/wait-for-it.sh not found; continuing"
-          fi
+          # Frontend
+          docker build -f frontend/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:frontend-ci-${{ github.run_number }} \
+                                                -t ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:frontend-latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:frontend-ci-${{ github.run_number }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:frontend-latest
 
-      - name: Wait for Postgres
-        run: |
-          if [ -f ./scripts/wait-for-it.sh ]; then
-            ./scripts/wait-for-it.sh -t 60 localhost:5432
-          else
-            echo "No wait-for-it script; sleeping 10s"
-            sleep 10
-          fi
+          # Link Service
+          docker build -f link-service/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:link-service-ci-${{ github.run_number }} \
+                                                    -t ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:link-service-latest ./link-service
+          docker push ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:link-service-ci-${{ github.run_number }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:link-service-latest
 
-      - name: Wait a short moment for other services
-        run: sleep 5
-
-      - name: Run unit tests (link-service - Python)
-        run: |
-          docker compose -f ./docker-compose.yml run --rm link-service sh -lc '
-            echo "Inside link-service: installing requirements (if present)";
-            if [ -f requirements.txt ]; then
-              python3 -m pip install --no-cache-dir -r requirements.txt || true;
-            else
-              echo "no requirements.txt";
-            fi;
-            if [ -d tests ] || [ -f pytest.ini ]; then
-              if command -v pytest >/dev/null 2>&1; then
-                pytest -q || exit 1;
-              else
-                echo "pytest not installed; skipping tests";
-              fi;
-            else
-              echo "no tests found for link-service; skipping";
-            fi
-          '
-
-      - name: Run unit tests (analytics-service - Node)
-        run: docker compose -f ./docker-compose.yml run --rm analytics-service sh -lc '
-          apt-get update && apt-get install -y curl && \
-          curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
-          apt-get install -y nodejs && \
-          npm install --legacy-peer-deps && npm test -- --watchAll=false'
-
-      - name: Run frontend tests (Node)
-        run: docker compose -f ./docker-compose.yml run --rm frontend sh -lc 'npm install --legacy-peer-deps && npm test -- --watchAll=false'
-
-      - name: Run e2e tests
-        run: docker compose -f ./docker-compose.yml run --rm e2e
-
-      - name: Tear down docker-compose (always)
-        if: ${{ always() }}
-        run: docker compose -f ./docker-compose.yml down --volumes --remove-orphans
+          # Analytics Service
+          docker build -f analytics-service/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:analytics-service-ci-${{ github.run_number }} \
+                                                          -t ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:analytics-service-latest ./analytics-service
+          docker push ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:analytics-service-ci-${{ github.run_number }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/url-shorten-final-project:analytics-service-latest
