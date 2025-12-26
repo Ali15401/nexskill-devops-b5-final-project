@@ -55,7 +55,7 @@ jobs:
 
       - name: Run analytics-service unit tests (Node)
         run: |
-          docker-compose -f ./docker-compose.yml run --rm link-service sh -lc "pip install --no-cache-dir -r requirements.txt && pip install pytest && python -m pytest tests/ --maxfail=1 -q"
+          docker-compose -f ./docker-compose.yml run --rm analytics-service sh -lc "npm install && npm test"
 
       - name: Run link-service unit tests (Python)
         run: |
