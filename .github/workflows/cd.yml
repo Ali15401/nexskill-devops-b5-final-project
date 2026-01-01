@@ -26,5 +26,3 @@ jobs:
         # Use the AWS CLI to force a new deployment of the service.
         # This tells ECS to pull the 'latest' images and restart the tasks.
         aws ecs update-service --cluster project-cluster --service project-service --force-new-deployment
-
-~                                                                       
