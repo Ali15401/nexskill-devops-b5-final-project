@@ -1,5 +1,7 @@
 # URL Shortener - Microservices Application
 
+[![CI](https://github.com/Ali15401/nexskill-devops-b5-final-project/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ali15401/nexskill-devops-b5-final-project/actions/workflows/ci.yml?query=branch%3Amain)
+
 A simple microservices-based URL shortener built with Python, Node.js, and React.
 
 ## Services
