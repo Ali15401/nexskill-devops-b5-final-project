@@ -1,20 +1,41 @@
+# Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
-# Set working directory
+# Set environment vars
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=3000 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
-# Copy requirements first (better caching)
-COPY requirements.txt .
+# Install OS-level build deps for packages like psycopg2-binary
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+  && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install python deps
+COPY link-service/requirements.txt /app/requirements.txt
+RUN python -m pip install --upgrade pip \
+  && python -m pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy application code
-COPY . .
+# Copy application code (do this after installing deps to use Docker cache)
+COPY link-service /app
 
-# Expose the port your app runs on
-# (Change if your app uses a different port)
-EXPOSE 3000
+# Create a non-root user and set ownership
+RUN groupadd -r app && useradd -r -g app app \
+  && chown -R app:app /app
 
-# Run the application
-CMD ["python", "app.py"]
+USER app
+
+# Expose port
+EXPOSE ${PORT}
+
+# Basic healthcheck (optional)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:${PORT}/health || exit 1
+
+# Use gunicorn for production
+CMD ["sh", "-c", "exec gunicorn --workers 3 --worker-class gthread --threads 4 --bind 0.0.0.0:${PORT} app:app"]
