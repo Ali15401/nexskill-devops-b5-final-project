@@ -13,9 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-# Expose port 5000 to the outside world
+# Expose port 5000
 EXPOSE 5000
 
-# The command to run when the container starts.
-# This uses Gunicorn to run the 'app' object from the 'app.py' file.
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# THE FINAL, CORRECTED COMMAND:
+# This uses 'exec' to make Gunicorn the main process, which is a container best practice.
+# It also explicitly sets the number of workers.
+CMD ["gunicorn", "--workers=1", "--bind", "0.0.0.0:5000", "app:app"]
