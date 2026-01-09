@@ -2,14 +2,15 @@
 FROM python:3.11-slim
 
 # Set environment vars
+# --- CRITICAL FIX: Changed the port to 5001 to avoid collision with the frontend ---
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=3000 \
+    PORT=5001 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install OS-level build deps for packages like psycopg2-binary
+# Install OS-level build deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -17,12 +18,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Install python deps
-COPY link-service/requirements.txt /app/requirements.txt
+# --- CRITICAL FIX: Corrected the COPY path ---
+COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip \
   && python -m pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy application code (do this after installing deps to use Docker cache)
-COPY link-service /app
+# Copy application code
+# --- CRITICAL FIX: Corrected the COPY path ---
+COPY . /app
 
 # Create a non-root user and set ownership
 RUN groupadd -r app && useradd -r -g app app \
@@ -30,10 +33,10 @@ RUN groupadd -r app && useradd -r -g app app \
 
 USER app
 
-# Expose port
+# Expose the new port
 EXPOSE ${PORT}
 
-# Basic healthcheck (optional)
+# Basic healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://127.0.0.1:${PORT}/health || exit 1
 
