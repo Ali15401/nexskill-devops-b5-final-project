@@ -3,7 +3,7 @@ name: CI - Build and Push Docker Images
 on:
   push:
     branches:
-      - "**" # This will run on any branch, including develop and main
+      - "**" # Run on all branches
 
 jobs:
   build-frontend:
@@ -22,15 +22,14 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v4
         with:
-          # This tells the builder to look inside the 'frontend' folder
-          context: ./frontend
+          context: ./frontend # Correct
           file: ./frontend/Dockerfile
           push: true
-          # This creates the image ali15401/nexskill-frontend
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-frontend:latest
 
-  build-backend:
-    name: Build and Push Backend
+  # --- THIS IS THE CORRECTED JOB ---
+  build-link-service:
+    name: Build and Push Link-Service
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -42,15 +41,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push backend image
+      - name: Build and push link-service image
         uses: docker/build-push-action@v4
         with:
-          # This tells the builder to look inside the 'backend' folder
-          context: ./backend
-          file: ./backend/Dockerfile
+          # It now points to your real service directory
+          context: ./link-service
+          file: ./link-service/Dockerfile
           push: true
-          # This creates the image ali15401/nexskill-backend
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-backend:latest
+          # It now builds the correct image name
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-link-service:latest
 
   build-nginx:
     name: Build and Push Nginx
@@ -68,9 +67,7 @@ jobs:
       - name: Build and push nginx image
         uses: docker/build-push-action@v4
         with:
-          # This tells the builder to look inside the 'nginx' folder
-          context: ./nginx
+          context: ./nginx # Correct
           file: ./nginx/Dockerfile
           push: true
-          # This creates the image ali15401/nexskill-nginx
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-nginx:latest
