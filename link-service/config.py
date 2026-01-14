@@ -12,7 +12,7 @@ class Config:
     DATABASE_USER = os.environ.get('DB_USER', 'projectadmin')
 
     # This is a placeholder for now. The service will default to a dummy URL.
-    ANALYTICS_SERVICE_URL = os.environ.get('ANALYTICS_SERVICE_URL', 'http://localhost:9999')
+    ANALYTICS_SERVICE_URL = os.environ.get('ANALYTICS_SERVICE_URL', 'http://project-alb-924486123.us-east-1.elb.amazonaws.com')
 
     # These are needed for the app to fetch the password from AWS Secrets Manager
     DB_SECRET_ARN = os.environ.get('DB_SECRET_ARN')
