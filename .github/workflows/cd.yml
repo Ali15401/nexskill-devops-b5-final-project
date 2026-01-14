@@ -1,28 +1,41 @@
 name: CD - Deploy to ECS
 
 on:
-  push:
-    branches:
-      - main # This workflow runs only on pushes to the main branch
+  workflow_run:
+    workflows: ["Docker CI"]
+    types:
+      - completed
 
 jobs:
   deploy:
-    name: Deploy to ECS
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+      - name: Redeploy frontend
+        run: |
+          aws ecs update-service \
+            --cluster node-ec2-cluster \
+            --service frontend \
+            --force-new-deployment
 
-    - name: Deploy to Amazon ECS
-      run: |
-        # Use the AWS CLI to force a new deployment of the service.
-        # This tells ECS to pull the 'latest' images and restart the tasks.
-        aws ecs update-service --cluster project-cluster --service project-service --force-new-deployment
+      - name: Redeploy link-service
+        run: |
+          aws ecs update-service \
+            --cluster node-ec2-cluster \
+            --service link-service \
+            --force-new-deployment
+
+      - name: Redeploy analytics-service
+        run: |
+          aws ecs update-service \
+            --cluster node-ec2-cluster \
+            --service analytics-service \
+            --force-new-deployment
