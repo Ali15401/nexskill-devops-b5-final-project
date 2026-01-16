@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const LINK_SERVICE_URL = process.env.REACT_APP_LINK_SERVICE_URL || 'http://localhost:3000';
-const ANALYTICS_SERVICE_URL = process.env.REACT_APP_ANALYTICS_SERVICE_URL || 'http://localhost:4000';
+// --- KEY CHANGE 1 ---
+// We only need ONE API endpoint: the public address of our Load Balancer.
+// All requests will go to this single address.
+// The `|| 'http://localhost:3000'` part is a fallback for local testing.
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
 
 function App() {
   const [url, setUrl] = useState('');
@@ -18,7 +21,8 @@ function App() {
 
   const fetchLinks = async () => {
     try {
-      const response = await fetch(`${LINK_SERVICE_URL}/api/links`);
+      // Use the single API_BASE_URL
+      const response = await fetch(`${API_BASE_URL}/api/links`);
       const data = await response.json();
       setLinks(data);
     } catch (err) {
@@ -28,7 +32,9 @@ function App() {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await fetch(`${ANALYTICS_SERVICE_URL}/api/analytics`);
+      // Use the single API_BASE_URL, even for analytics
+      // The Load Balancer will route this to the correct service based on its rules.
+      const response = await fetch(`${API_BASE_URL}/api/analytics`);
       const data = await response.json();
       setAnalytics(data);
     } catch (err) {
@@ -40,18 +46,21 @@ function App() {
     e.preventDefault();
     setError('');
     setShortUrl('');
-
     try {
-      const response = await fetch(`${LINK_SERVICE_URL}/api/shorten`, {
+      // Use the single API_BASE_URL
+      const response = await fetch(`${API_BASE_URL}/api/shorten`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
       });
-
       const data = await response.json();
       
       if (response.ok) {
-        setShortUrl(`${LINK_SERVICE_URL}${data.short_url}`);
+        // --- KEY CHANGE 2 ---
+        // Create a full, correct URL without double slashes.
+        // The backend returns a relative path like "/xyz", so we combine it
+        // with the base URL to make a complete, clickable link.
+        setShortUrl(new URL(data.short_url, API_BASE_URL).href);
         setUrl('');
         fetchLinks();
       } else {
@@ -72,7 +81,6 @@ function App() {
       <header className="App-header">
         <h1>URL Shortener</h1>
       </header>
-
       <main className="container">
         <section className="create-section">
           <h2>Create Short URL</h2>
@@ -114,7 +122,9 @@ function App() {
               {links.map((link) => (
                 <tr key={link.short_code}>
                   <td>
-                    <a href={`${LINK_SERVICE_URL}/${link.short_code}`} target="_blank" rel="noopener noreferrer">
+                    {/* --- KEY CHANGE 3 --- */}
+                    {/* Also use the robust URL constructor here for consistency. */}
+                    <a href={new URL(link.short_code, API_BASE_URL).href} target="_blank" rel="noopener noreferrer">
                       {link.short_code}
                     </a>
                   </td>
