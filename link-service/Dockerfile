@@ -38,7 +38,7 @@ EXPOSE ${PORT}
 
 # Basic healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://127.0.0.1:${PORT}/health || exit 1
+  CMD curl -f http://10.0.2.223:${PORT}/health || exit 1
 
 # Use gunicorn for production
-CMD ["sh", "-c", "exec gunicorn --workers 3 --worker-class gthread --threads 4 --bind 0.0.0.0:${PORT} app:app"]
+CMD ["gunicorn", "--workers", "3", "--worker-class", "gthread", "--threads", "4", "--bind", "0.0.0.0:5001", "app:app"]
