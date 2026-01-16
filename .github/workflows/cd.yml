@@ -2,7 +2,7 @@ name: CD - Deploy to ECS
 
 on:
   workflow_run:
-    workflows: ["Docker CI"]
+    workflows: ["CI - Build and Push Docker Images"]  # Match the exact name of the CI workflow
     types:
       - completed
 
@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
