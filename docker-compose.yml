@@ -60,13 +60,26 @@ services:
       postgres:
         condition: service_healthy
       analytics-service:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
+    restart: on-failure
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      link-service:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     restart: on-failure
 
 volumes:
