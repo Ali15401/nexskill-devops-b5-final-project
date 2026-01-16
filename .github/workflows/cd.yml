@@ -20,11 +20,25 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # Correct region
+          aws-region: us-east-1
 
-      - name: Redeploy project-service
+      - name: Redeploy frontend
         run: |
           aws ecs update-service \
             --cluster project-cluster \
-            --service project-service \
+            --service frontend \  # Replace with the exact service name
+            --force-new-deployment
+
+      - name: Redeploy link-service
+        run: |
+          aws ecs update-service \
+            --cluster project-cluster \
+            --service link-service \  # Replace with the exact service name
+            --force-new-deployment
+
+      - name: Redeploy analytics-service
+        run: |
+          aws ecs update-service \
+            --cluster project-cluster \
+            --service analytics-service \  # Replace with the exact service name
             --force-new-deployment
