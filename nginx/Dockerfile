@@ -1,8 +1,11 @@
-# Start from the official Nginx image
-FROM nginx:latest
+# Use an NGINX base image
+FROM nginx:alpine
 
-# Remove the default nginx config file from the image
-RUN rm /etc/nginx/nginx.conf
+# Copy the custom NGINX configuration file
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy our new, corrected config file into the image
-COPY nginx.conf /etc/nginx/nginx.conf
+# Expose port 80 for the NGINX server
+EXPOSE 80
+
+# Start NGINX
+CMD ["nginx", "-g", "daemon off;"]
