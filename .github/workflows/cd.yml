@@ -2,7 +2,7 @@ name: CD - Deploy to ECS
 
 on:
   workflow_run:
-    workflows: ["CI - Build and Push Docker Images"]
+    workflows: ["Docker CI"]
     types:
       - completed
 
@@ -12,19 +12,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: eu-north-1
 
-      - name: Redeploy ECS service
+      - name: Redeploy frontend
         run: |
           aws ecs update-service \
-          --cluster project-cluster \
-          --service project-service \
-          --force-new-deployment
+            --cluster node-ec2-cluster \
+            --service frontend \
+            --force-new-deployment
+
+      - name: Redeploy link-service
+        run: |
+          aws ecs update-service \
+            --cluster node-ec2-cluster \
+            --service link-service \
+            --force-new-deployment
+
+      - name: Redeploy analytics-service
+        run: |
+          aws ecs update-service \
+            --cluster node-ec2-cluster \
+            --service analytics-service \
+            --force-new-deployment
