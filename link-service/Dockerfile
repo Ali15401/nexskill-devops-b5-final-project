@@ -1,44 +1,27 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# Use Node.js as the base image
+FROM node:18-alpine
 
-# Set environment vars
-# --- CRITICAL FIX: Changed the port to 5001 to avoid collision with the frontend ---
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=5001 \
-    PIP_NO_CACHE_DIR=1
-
+# Set working directory in the container
 WORKDIR /app
 
-# Install OS-level build deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    curl \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install python deps
-# --- CRITICAL FIX: Corrected the COPY path ---
-COPY requirements.txt /app/requirements.txt
-RUN python -m pip install --upgrade pip \
-  && python -m pip install --no-cache-dir -r /app/requirements.txt
+# Copy package.json and install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
 
 # Copy application code
-# --- CRITICAL FIX: Corrected the COPY path ---
-COPY . /app
+COPY . .
 
 # Create a non-root user and set ownership
-RUN groupadd -r app && useradd -r -g app app \
-  && chown -R app:app /app
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
-USER app
+# Expose port 5001
+EXPOSE 5001
 
-# Expose the new port
-EXPOSE ${PORT}
-
-# Basic healthcheck
+# Health check endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://10.0.2.223:${PORT}/health || exit 1
+   CMD curl -f http://localhost:5001/health || exit 1
 
-# Use gunicorn for production
-CMD ["gunicorn", "--workers", "3", "--worker-class", "gthread", "--threads", "4", "--bind", "0.0.0.0:5001", "app:app"]
+# Start the app
+CMD ["node", "server.js"]
