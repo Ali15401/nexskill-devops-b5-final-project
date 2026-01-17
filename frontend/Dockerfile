@@ -35,4 +35,5 @@ EXPOSE 3000
 
 # The command to start the server. It will serve the contents of the current folder.
 # The '-s' flag is important; it tells 'serve' to handle single-page applications correctly.
-CMD ["serve", "-s", "."]
+# Ensure your start command binds to 0.0.0.0
+CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "3000"]
