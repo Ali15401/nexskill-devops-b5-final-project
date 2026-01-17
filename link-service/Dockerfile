@@ -1,27 +1,46 @@
-# Use Node.js as the base image
-FROM node:18-alpine
+# Use an official Python runtime as the base image
+FROM python:3.11-slim
 
-# Set working directory in the container
+# Set environment variables
+# CRITICAL: Included AWS_REGION variable for AWS communication
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=5001 \
+    PIP_NO_CACHE_DIR=1 \
+    AWS_REGION=us-east-1
+
 WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY package*.json ./
-RUN npm ci --only=production
+# Install OS-level build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install application dependencies
+# CRITICAL: Adding boto3 and prometheus-client for AWS services and monitoring
+COPY requirements.txt /app/requirements.txt
+RUN python -m pip install --upgrade pip \
+  && python -m pip install --no-cache-dir boto3 prometheus_flask_exporter \
+  && python -m pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy application code
-COPY . .
+COPY . /app
 
-# Create a non-root user and set ownership
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Create a non-root user and assign ownership
+RUN groupadd -r app && useradd -r -g app app \
+  && chown -R app:app /app
 
-# Expose port 5001
-EXPOSE 5001
+USER app
 
-# Health check endpoint
+# Expose the application port
+EXPOSE ${PORT}
+
+# Health check configuration
+# CRITICAL: Updated to dynamically handle DNS Load Balancer and appchecks
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-   CMD curl -f http://localhost:5001/health || exit 1
+  CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Start the app
-CMD ["node", "server.js"]
+# Run the application with Gunicorn
+CMD ["gunicorn", "--workers", "3", "--worker-class", "gthread", "--threads", "4", "--bind", "0.0.0.0:5001", "app:app"]
