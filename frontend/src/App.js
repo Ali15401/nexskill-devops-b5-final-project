@@ -5,7 +5,7 @@ import './App.css';
 // We only need ONE API endpoint: the public address of our Load Balancer.
 // All requests will go to this single address.
 // The `|| 'http://localhost:3000'` part is a fallback for local testing.
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://project-alb-1445225992.us-east-1.elb.amazonaws.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost/api";
 
 function App() {
   const [url, setUrl] = useState('');
