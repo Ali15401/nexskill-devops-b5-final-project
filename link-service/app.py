@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # CORS: allow your site’s origin (configure via env ALLOWED_ORIGIN)
 # Example: ALLOWED_ORIGIN=http://project-alb-1445225992.us-east-1.elb.amazonaws.com
-ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "http://project-alb-1445225992.us-east-1.elb.amazonaws.com")
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGIN}}, supports_credentials=True)
 
 # Optional: add default headers (flask-cors covers most cases)
@@ -62,7 +62,7 @@ UPLOAD_BUCKET = os.environ.get("UPLOAD_BUCKET", "nexskill-project-files-2026")
 
 # If you want absolute short URLs in responses, set BASE_URL to your ALB:
 # e.g., BASE_URL = "http://project-alb-1445225992.us-east-1.elb.amazonaws.com"
-BASE_URL = os.environ.get("BASE_URL")  # optional
+BASE_URL = os.environ.get("http://project-alb-1445225992.us-east-1.elb.amazonaws.com")  # optional
 
 
 # -----------------------------------------------------------------------------
