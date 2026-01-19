@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// --- KEY CHANGE 1 ---
-// We only need ONE API endpoint: the public address of our Load Balancer.
-// All requests will go to this single address.
-// The `|| 'http://localhost:3000'` part is a fallback for local testing.
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost/5001";
+// --- KEY CHANGE ---
+// This variable will be set to "/api" during the Docker build.
+// For local testing, it can fall back to the direct backend URL.
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
 
 function App() {
   const [url, setUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
   const [links, setLinks] = useState([]);
-  const [analytics, setAnalytics] = useState([]);
+  const [analytics, setAnalytics] = useState({ total_links: 0, total_clicks: 0 }); // Default state
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -21,24 +20,25 @@ function App() {
 
   const fetchLinks = async () => {
     try {
-      // Use the single API_BASE_URL
-      const response = await fetch(`${API_BASE_URL}/api/links`);
+      // CORRECTED: The path is now just "/links". API_BASE_URL will add the "/api" prefix.
+      const response = await fetch(`${API_BASE_URL}/links`);
       const data = await response.json();
-      setLinks(data);
+      setLinks(data.links || []); // Ensure we have an array even on error
     } catch (err) {
       console.error('Error fetching links:', err);
+      setError('Failed to fetch links.');
     }
   };
 
   const fetchAnalytics = async () => {
     try {
-      // Use the single API_BASE_URL, even for analytics
-      // The Load Balancer will route this to the correct service based on its rules.
-      const response = await fetch(`${API_BASE_URL}/api/analytics`);
+      // CORRECTED: The path is now just "/analytics".
+      const response = await fetch(`${API_BE_URL}/analytics`);
       const data = await response.json();
       setAnalytics(data);
     } catch (err) {
       console.error('Error fetching analytics:', err);
+      setError('Failed to fetch analytics.');
     }
   };
 
@@ -47,8 +47,8 @@ function App() {
     setError('');
     setShortUrl('');
     try {
-      // Use the single API_BASE_URL
-      const response = await fetch(`${API_BASE_URL}/api/shorten`, {
+      // CORRECTED: The path is now just "/shorten".
+      const response = await fetch(`${API_BASE_URL}/shorten`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
@@ -56,13 +56,11 @@ function App() {
       const data = await response.json();
       
       if (response.ok) {
-        // --- KEY CHANGE 2 ---
-        // Create a full, correct URL without double slashes.
-        // The backend returns a relative path like "/xyz", so we combine it
-        // with the base URL to make a complete, clickable link.
-        setShortUrl(new URL(data.short_url, API_BASE_URL).href);
+        // Construct the full clickable URL relative to the window's origin.
+        setShortUrl(new URL(data.short_url, window.location.origin).href);
         setUrl('');
         fetchLinks();
+        fetchAnalytics();
       } else {
         setError(data.error || 'Failed to shorten URL');
       }
@@ -72,10 +70,12 @@ function App() {
   };
 
   const getClickCount = (shortCode) => {
-    const analytic = analytics.find(a => a.short_code === shortCode);
-    return analytic ? analytic.clicks : 0;
+    // This function will not work correctly with the current analytics format.
+    // It is kept for completeness but would need to be updated if you implement click tracking per link.
+    return 'N/A';
   };
 
+  // --- This is the complete rendering logic from your original file ---
   return (
     <div className="App">
       <header className="App-header">
@@ -106,7 +106,6 @@ function App() {
             </div>
           )}
         </section>
-
         <section className="links-section">
           <h2>All Links</h2>
           <table>
@@ -122,9 +121,7 @@ function App() {
               {links.map((link) => (
                 <tr key={link.short_code}>
                   <td>
-                    {/* --- KEY CHANGE 3 --- */}
-                    {/* Also use the robust URL constructor here for consistency. */}
-                    <a href={new URL(link.short_code, API_BASE_URL).href} target="_blank" rel="noopener noreferrer">
+                    <a href={new URL(link.short_code, window.location.origin).href} target="_blank" rel="noopener noreferrer">
                       {link.short_code}
                     </a>
                   </td>
