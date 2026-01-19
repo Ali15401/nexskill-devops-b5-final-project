@@ -1,11 +1,13 @@
-# Use an NGINX base image
 FROM nginx:alpine
 
-# Copy the custom NGINX configuration file
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose port 80 for the NGINX server
+# Create log directory
+RUN mkdir -p /var/log/nginx
+
+# Expose port 80
 EXPOSE 80
 
-# Start NGINX
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
