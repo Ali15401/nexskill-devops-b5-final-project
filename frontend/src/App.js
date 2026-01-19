@@ -33,7 +33,7 @@ function App() {
   const fetchAnalytics = async () => {
     try {
       // CORRECTED: The path is now just "/analytics".
-      const response = await fetch(`${API_BE_URL}/analytics`);
+      const response = await fetch(`${API_Base_URL}/analytics`);
       const data = await response.json();
       setAnalytics(data);
     } catch (err) {
