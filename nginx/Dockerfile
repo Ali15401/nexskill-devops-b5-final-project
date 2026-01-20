@@ -1,13 +1,14 @@
+# This is the correct content for nginx/Dockerfile
+
+# Use a lightweight NGINX base image
 FROM nginx:alpine
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copy your custom NGINX configuration into the container.
+# This is the standard location for additional configuration files.
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Create log directory
-RUN mkdir -p /var/log/nginx
-
-# Expose port 80
+# Expose port 80 for the NGINX server
 EXPOSE 80
 
-# Start nginx
+# The command to start the NGINX server when the container runs
 CMD ["nginx", "-g", "daemon off;"]
