@@ -2,40 +2,32 @@ name: CD - Deploy to ECS
 
 on:
   workflow_run:
-    workflows: ["Docker CI"]
+    # This workflow runs only after the "CI - Build and Push Application Images" workflow has completed successfully.
+    # Make sure the name matches your CI workflow file's name.
+    workflows: ["CI - Build and Push Application Images"]
     types:
       - completed
 
 jobs:
   deploy:
+    # This job only runs if the CI workflow was successful
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Deploy to ECS
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          # IMPORTANT: Use the same region your Terraform infrastructure is deployed to.
+          aws-region: us-east-1 
 
-      - name: Redeploy frontend
+      # --- THIS IS THE ONLY DEPLOYMENT STEP NEEDED ---
+      - name: Redeploy ECS Service to pull new images
         run: |
           aws ecs update-service \
-            --cluster node-ec2-cluster \
-            --service frontend \
-            --force-new-deployment
-
-      - name: Redeploy link-service
-        run: |
-          aws ecs update-service \
-            --cluster node-ec2-cluster \
-            --service link-service \
-            --force-new-deployment
-
-      - name: Redeploy analytics-service
-        run: |
-          aws ecs update-service \
-            --cluster node-ec2-cluster \
-            --service analytics-service \
+            --cluster project-cluster \
+            --service project-service \
             --force-new-deployment
