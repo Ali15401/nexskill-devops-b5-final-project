@@ -1,73 +1,55 @@
-name: CI - Build and Push Docker Images
+name: CI - Build and Push Application Images
 
 on:
   push:
     branches:
-      - "**" # Run on all branches
+      - main  # Triggers the workflow on every push to the main branch
 
 jobs:
-  build-frontend:
-    name: Build and Push Frontend
+  build-and-push:
+    name: Build and Push All Services
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Login to Docker Hub
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push frontend image
+      # --- Build and Push Link Service ---
+      - name: Build and push link-service
         uses: docker/build-push-action@v4
         with:
-          context: ./frontend # Correct
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-frontend:latest
-
-  # --- THIS IS THE CORRECTED JOB ---
-  build-link-service:
-    name: Build and Push Link-Service
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push link-service image
-        uses: docker/build-push-action@v4
-        with:
-          # It now points to your real service directory
           context: ./link-service
           file: ./link-service/Dockerfile
           push: true
-          # It now builds the correct image name
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-link-service:latest
 
-  build-nginx:
-    name: Build and Push Nginx
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push nginx image
+      # --- Build and Push Analytics Service ---
+      - name: Build and push analytics-service
         uses: docker/build-push-action@v4
         with:
-          context: ./nginx # Correct
-          file: ./nginx/Dockerfile
+          context: ./analytics-service
+          file: ./analytics-service/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-nginx:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-analytics-service:latest
+
+      # --- Build and Push Frontend ---
+      - name: Build and push frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nexskill-frontend:latest
+          # CRITICAL: This passes the build argument to create a production build
+          # that uses relative paths for API calls.
+          build-args: |
+            REACT_APP_API_BASE_URL=/api
