@@ -8,10 +8,12 @@ on:
 
 jobs:
   deploy:
+    # This job only runs if the "Docker CI" workflow was successful
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Configure AWS credentials from GitHub Secrets
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -19,6 +21,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      # Step 2: TEMPORARY DEBUGGING STEP - DO NOT KEEP THIS LONG-TERM
+      # This step will print the AWS Account ID and User that the workflow is authenticated as.
+      # Compare the 'Account' number from this output to the one from your local machine.
+      - name: Check AWS Identity
+        run: |
+          echo "Verifying the AWS identity being used by the runner..."
+          aws sts get-caller-identity
+
+      # Step 3: Redeploy the frontend service on ECS
+      # This command tells ECS to pull the newest image and start a new task.
       - name: Redeploy frontend
         run: |
           aws ecs update-service \
@@ -26,6 +38,7 @@ jobs:
             --service frontend \
             --force-new-deployment
 
+      # Step 4: Redeploy the link-service on ECS
       - name: Redeploy link-service
         run: |
           aws ecs update-service \
@@ -33,6 +46,7 @@ jobs:
             --service link-service \
             --force-new-deployment
 
+      # Step 5: Redeploy the analytics-service on ECS
       - name: Redeploy analytics-service
         run: |
           aws ecs update-service \
