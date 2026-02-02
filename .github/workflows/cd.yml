@@ -17,25 +17,25 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-north-1
+          aws-region: us-east-1
 
       - name: Redeploy frontend
         run: |
           aws ecs update-service \
-            --cluster devops-ec2-cluster \
+            --cluster node-ec2-cluster \
             --service frontend \
             --force-new-deployment
 
       - name: Redeploy link-service
         run: |
           aws ecs update-service \
-            --cluster devops-ec2-cluster \
+            --cluster node-ec2-cluster \
             --service link-service \
             --force-new-deployment
 
       - name: Redeploy analytics-service
         run: |
           aws ecs update-service \
-            --cluster devops-ec2-cluster \
+            --cluster node-ec2-cluster \
             --service analytics-service \
             --force-new-deployment
